@@ -1,0 +1,488 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Paragon Quote Pipeline</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a mill sales board — filters across the top, totals, two charts side by side, then the tables. */
+:root{
+  --bg:#eef2f4; --panel:#ffffff; --panel-2:#f6f8f9; --ink:#14202a; --muted:#5a6873; --line:#d6dde2;
+  --accent:#1b6b78; --accent-ink:#ffffff; --accent-soft:#dcedf0;
+  --bad:#b3342a; --warn:#9a5d07; --ok:#2c7a4b; --grid:#e3e8eb; --axis:#a9b4bb;
+  --c1:#1b6b78; --c2:#c07a1c; --c3:#5b6fae; --c4:#3f8f5a; --c5:#a54b6e; --c6:#7a8f9a; --c7:#8a6d3b; --c8:#4aa3b0;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e161b; --panel:#162128; --panel-2:#1b2830; --ink:#e4ebef; --muted:#93a3ad; --line:#26353e;
+  --accent:#58b6c4; --accent-ink:#0b1a1e; --accent-soft:#18363c;
+  --bad:#ef7a6e; --warn:#e3a54a; --ok:#6cc792; --grid:#22313a; --axis:#4a5b65;
+  --c1:#58b6c4; --c2:#e3a54a; --c3:#8e9fe0; --c4:#6cc792; --c5:#e08aac; --c6:#9fb0ba; --c7:#c9a46a; --c8:#7fd0da; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e161b; --panel:#162128; --panel-2:#1b2830; --ink:#e4ebef; --muted:#93a3ad; --line:#26353e;
+  --accent:#58b6c4; --accent-ink:#0b1a1e; --accent-soft:#18363c;
+  --bad:#ef7a6e; --warn:#e3a54a; --ok:#6cc792; --grid:#22313a; --axis:#4a5b65;
+  --c1:#58b6c4; --c2:#e3a54a; --c3:#8e9fe0; --c4:#6cc792; --c5:#e08aac; --c6:#9fb0ba; --c7:#c9a46a; --c8:#7fd0da; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.qp{max-width:1400px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
+h1,h2{font-family:var(--f-display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:30px;line-height:1.05}
+h2{font-size:17px;text-transform:uppercase;letter-spacing:.06em}
+.qp-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 20px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+.qp-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:600;margin-bottom:4px}
+.qp-upd{font-size:12px;color:var(--muted);text-align:right}
+.qp-take{margin:0;background:var(--accent-soft);border-radius:6px;padding:10px 14px;font-size:14px}
+.qp-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+.qp-f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.qp-f>span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--muted)}
+.qp-f select,.qp-f input{font:inherit;font-size:13px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:6px 8px;min-width:0}
+.qp-f input[type=search]{width:min(100%,220px)}
+.qp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.qp-chip{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:999px;padding:3px 10px;cursor:pointer}
+.qp-chip[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.btn{font:inherit;font-size:12.5px;font-weight:600;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:6px 10px;color:var(--ink);cursor:pointer}
+.btn:hover{background:var(--panel-2)}
+.qp-reset{margin-left:auto}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.qp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9.5rem),1fr));gap:10px}
+.qp-kpi{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.qp-kpi .v{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1.05;font-variant-numeric:tabular-nums}
+.qp-kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.qp-kpi.bad{border-left:4px solid var(--bad)}
+.qp-kpi.ok{border-left:4px solid var(--ok)}
+.qp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,30rem),1fr));gap:14px}
+.qp-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.qp-card .note{font-size:12px;color:var(--muted);margin:2px 0 0}
+.qp-ch{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px}
+.qp-ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.qp-chart{position:relative;min-height:300px}
+.qp-chart svg{display:block;overflow:visible}
+.qp-chart text{font-family:var(--f-body)}
+.qp-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted)}
+.qp-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.qp-tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.15);padding:6px 9px;font-size:12px;white-space:nowrap;z-index:5}
+.qp-tip .h{color:var(--muted);margin-bottom:2px}
+.qp-tip .r{display:flex;gap:10px;justify-content:space-between}
+.qp-tip .r b{font-weight:600;font-variant-numeric:tabular-nums}
+.qp-tbl{overflow:auto;max-height:520px;border-top:1px solid var(--line)}
+.qp-tbl table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+.qp-tbl th{position:sticky;top:0;background:var(--panel);text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);padding:8px;border-bottom:2px solid var(--line);white-space:nowrap;z-index:1}
+.qp-tbl th button{font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;background:none;border:0;padding:0;cursor:pointer}
+.qp-tbl th[aria-sort=ascending] button::after{content:" ▲";font-size:9px}
+.qp-tbl th[aria-sort=descending] button::after{content:" ▼";font-size:9px}
+.qp-tbl td{padding:7px 8px;border-bottom:1px dashed var(--line);vertical-align:top}
+.qp-tbl td.n,.qp-tbl th.n{text-align:right;white-space:nowrap;font-family:var(--f-mono);font-size:12px}
+.qp-tbl th.n{font-family:var(--f-body);font-size:11px}
+.qp-tbl td.w{min-width:220px}
+.qp-tbl td.cu{font-weight:600;white-space:nowrap}
+.qp-tbl tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+.qp-st{display:inline-block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-radius:3px;padding:1px 6px;white-space:nowrap;border:1px solid var(--line);color:var(--muted)}
+.qp-st.needs{color:var(--bad);border-color:var(--bad)}
+.qp-st.won{color:var(--ok);border-color:var(--ok)}
+.qp-st.quoted{color:var(--accent);border-color:var(--accent)}
+.qp-st.eval{color:var(--warn);border-color:var(--warn)}
+.qp-muted{color:var(--muted)}
+.qp-empty{padding:20px 0;color:var(--muted);font-size:12.5px}
+.qp-foot{font-size:12px;color:var(--muted);max-width:100ch;margin:0}
+.qp-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:6px;font-size:13px;z-index:30}
+.qp-copybox{width:100%;min-height:120px;font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:5px;padding:8px;background:var(--panel-2);color:var(--ink)}
+@media (max-width:520px){h1{font-size:25px}.qp-upd{text-align:left}.qp-reset{margin-left:0}}
+</style>
+
+<div class="qp">
+  <header class="qp-head" id="top">
+    <div>
+      <div class="qp-eyebrow">Paragon Pipe Company · Sapulpa mill</div>
+      <h1>Paragon Quote Pipeline</h1>
+    </div>
+    <div class="qp-upd" id="updated">—</div>
+  </header>
+  <p class="qp-take" id="takeaway">—</p>
+
+  <section class="qp-bar" id="filters" aria-label="Filters">
+    <label class="qp-f"><span>Period (date received)</span>
+      <select id="f-period">
+        <option value="3m">Last 3 months</option>
+        <option value="6m" selected>Last 6 months</option>
+        <option value="12m">Last 12 months</option>
+        <option value="all">All time</option>
+        <option value="custom">Custom dates…</option>
+      </select>
+    </label>
+    <label class="qp-f" id="f-fromwrap" hidden><span>From</span><input type="date" id="f-from" min="2020-01-01" max="2099-12-31"></label>
+    <label class="qp-f" id="f-towrap" hidden><span>To</span><input type="date" id="f-to" min="2020-01-01" max="2099-12-31"></label>
+    <div class="qp-f"><span>Stage</span><div class="qp-chips" id="f-stages" role="group" aria-label="Stage"></div></div>
+    <label class="qp-f"><span>Product</span><select id="f-product"></select></label>
+    <label class="qp-f"><span>Grade</span><select id="f-grade"></select></label>
+    <label class="qp-f"><span>Search</span><input type="search" id="f-q" placeholder="Customer, size, note…"></label>
+    <button class="btn qp-reset" id="f-reset" type="button">Reset filters</button>
+  </section>
+
+  <section class="qp-kpis" aria-label="Totals for the filtered requests">
+    <div class="qp-kpi"><span class="v" id="k-req">—</span><span class="l">Requests</span></div>
+    <div class="qp-kpi bad"><span class="v" id="k-needs">—</span><span class="l">Need a response</span></div>
+    <div class="qp-kpi"><span class="v" id="k-ft">—</span><span class="l">Feet requested</span></div>
+    <div class="qp-kpi"><span class="v" id="k-val">—</span><span class="l">Quoted value</span></div>
+    <div class="qp-kpi"><span class="v" id="k-ppf">—</span><span class="l">Avg quoted $/ft</span></div>
+    <div class="qp-kpi"><span class="v" id="k-unpriced">—</span><span class="l">Feet not priced yet</span></div>
+    <div class="qp-kpi ok"><span class="v" id="k-won">—</span><span class="l">Won value</span></div>
+  </section>
+
+  <div class="qp-grid">
+    <section class="qp-card" id="trend">
+      <div class="qp-ch">
+        <div><h2>By month received</h2><p class="note" id="trend-note">—</p></div>
+        <div class="qp-ctl">
+          <label class="qp-f"><span>Measure</span><select id="c-measure">
+            <option value="footage">Feet requested</option>
+            <option value="value">Quoted value ($)</option>
+            <option value="requests">Number of requests</option>
+          </select></label>
+          <label class="qp-f"><span>Stack by</span><select id="c-stack">
+            <option value="product_type">Product type</option>
+            <option value="grade_family">Grade</option>
+            <option value="stage">Stage</option>
+            <option value="coating">Coating</option>
+            <option value="size">Size</option>
+            <option value="customer">Customer</option>
+            <option value="">Nothing</option>
+          </select></label>
+        </div>
+      </div>
+      <div class="qp-chart" id="trend-chart"></div>
+      <div class="qp-legend" id="trend-legend"></div>
+    </section>
+
+    <section class="qp-card" id="breakdown">
+      <div class="qp-ch">
+        <div><h2>Breakdown</h2><p class="note" id="bd-note">—</p></div>
+        <label class="qp-f"><span>Group by</span><select id="c-group">
+          <option value="customer">Customer</option>
+          <option value="size">Size</option>
+          <option value="grade_family">Grade</option>
+          <option value="product_type">Product type</option>
+          <option value="coating">Coating</option>
+          <option value="stage">Stage</option>
+          <option value="month">Month</option>
+        </select></label>
+      </div>
+      <div class="qp-chart" id="bd-chart"></div>
+    </section>
+  </div>
+
+  <section class="qp-card" id="pivot">
+    <div class="qp-ch"><div><h2 id="pv-title">Summary by customer</h2><p class="note">Click a column to sort. Uses the filters, measure and grouping above.</p></div>
+      <button class="btn" type="button" data-copy="pivot">Copy as CSV</button></div>
+    <div class="qp-tbl"><table id="pv-table"><thead></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="qp-card" id="requests">
+    <div class="qp-ch"><div><h2>Requests</h2><p class="note" id="rq-note">One row per customer request. Click a column to sort.</p></div>
+      <button class="btn" type="button" data-copy="requests">Copy as CSV</button></div>
+    <div class="qp-tbl">
+      <table id="rq-table">
+        <thead><tr>
+          <th><button type="button" data-k="customer">Customer</button></th>
+          <th><button type="button" data-k="stage">Stage</button></th>
+          <th><button type="button" data-k="received">Received</button></th>
+          <th><button type="button" data-k="product">Product and specs</button></th>
+          <th class="n"><button type="button" data-k="footage">Feet</button></th>
+          <th class="n"><button type="button" data-k="quoted_value_usd">Quoted value</button></th>
+          <th><button type="button" data-k="delivery">Delivery</button></th>
+          <th><button type="button" data-k="next_step">Next step</button></th>
+          <th><button type="button" data-k="owner">Owner</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="qp-card" id="lines">
+    <div class="qp-ch"><div><h2>Line items</h2><p class="note" id="ln-note">Every size and grade requested.</p></div>
+      <button class="btn" type="button" data-copy="lines">Copy as CSV</button></div>
+    <div class="qp-tbl">
+      <table id="ln-table">
+        <thead><tr>
+          <th><button type="button" data-k="received">Received</button></th>
+          <th><button type="button" data-k="customer">Customer</button></th>
+          <th><button type="button" data-k="od_in">Size</button></th>
+          <th><button type="button" data-k="wall">Wall</button></th>
+          <th><button type="button" data-k="grade">Grade</button></th>
+          <th><button type="button" data-k="product_type">Product</button></th>
+          <th><button type="button" data-k="coating">Coating</button></th>
+          <th class="n"><button type="button" data-k="footage">Feet</button></th>
+          <th class="n"><button type="button" data-k="price_per_ft">$/ft</button></th>
+          <th class="n"><button type="button" data-k="quoted_value_usd">Value</button></th>
+          <th><button type="button" data-k="stage">Stage</button></th>
+          <th><button type="button" data-k="line_note">Note</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="qp-card" id="copyfallback" hidden>
+    <div class="qp-ch"><div><h2>CSV</h2><p class="note">Your browser blocked the copy. Select all the text below, copy it, and paste it into Excel.</p></div>
+      <button class="btn" type="button" id="cf-close">Close</button></div>
+    <textarea class="qp-copybox" id="cf-text" readonly></textarea>
+  </section>
+
+  <p class="qp-foot">Built from Michael Queen's Project Desk, which reads his email and Tod Moss's quote logs. Quoted value counts only lines with a price; line pipe waiting on API certification has not been priced. Leads with no RFQ yet count as requests with no footage. Anyone with the link to this page can see it.</p>
+</div>
+<div class="qp-toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script type="application/json" id="qp-data">{"generatedAt":"2026-10-15T14:41:39+00:00","lines":[{"line_id":"allied-1","request_id":"allied","customer":"Allied","end_user":"","stage":"Quoted","received":"2026-09-17","month":"2026-09","size":"16\"","od_in":16,"wall":".375","grade":"X52","grade_family":"X52","product_type":"Line pipe","coating":"FBE","footage":105600,"price_per_ft":61.07,"line_note":"Price includes FBE","quoted_value_usd":6448992.0},{"line_id":"app-1","request_id":"app","customer":"APP","end_user":"","stage":"Quoted","received":"2026-10-09","month":"2026-10","size":"4\"","od_in":4,"wall":".237","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Bare","footage":15181,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"app-2","request_id":"app","customer":"APP","end_user":"","stage":"Quoted","received":"2026-10-09","month":"2026-10","size":"8\"","od_in":8,"wall":".322","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Bare","footage":13117,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"app-3","request_id":"app","customer":"APP","end_user":"","stage":"Quoted","received":"2026-10-09","month":"2026-10","size":"12\"","od_in":12,"wall":".375","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Bare","footage":10019,"price_per_ft":45.95,"line_note":"","quoted_value_usd":460373.05},{"line_id":"arcelormittal-1","request_id":"arcelormittal","customer":"ArcelorMittal","end_user":"Tejas Casing (delivery point)","stage":"Won","received":"2026-10-07","month":"2026-10","size":"5-1/2\"","od_in":5.5,"wall":".361","grade":"J55","grade_family":"J55 / L80","product_type":"OCTG casing","coating":"Bare","footage":150466,"price_per_ft":15.57,"line_note":"Green tube conversion","quoted_value_usd":2342755.62},{"line_id":"bps-12in-1","request_id":"bps-12in","customer":"BPS","end_user":"","stage":"Quoted","received":"2026-10-05","month":"2026-10","size":"12\"","od_in":12,"wall":".375","grade":"X52","grade_family":"X52","product_type":"Line pipe","coating":"FBE","footage":11000,"price_per_ft":55.81,"line_note":"Price includes FBE","quoted_value_usd":613910.0},{"line_id":"bps-12in-2","request_id":"bps-12in","customer":"BPS","end_user":"","stage":"Quoted","received":"2026-10-05","month":"2026-10","size":"12\"","od_in":12,"wall":".375","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Bare","footage":17000,"price_per_ft":45.95,"line_note":"","quoted_value_usd":781150.0},{"line_id":"bps-6in-x52-1","request_id":"bps-6in-x52","customer":"BPS","end_user":"","stage":"Needs response","received":"2026-10-15","month":"2026-10","size":"6\"","od_in":6,"wall":".250 or .280","grade":"X52 PSL2","grade_family":"X52","product_type":"Line pipe","coating":"FBE","footage":53400,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"bps-6in-x52-2","request_id":"bps-6in-x52","customer":"BPS","end_user":"","stage":"Needs response","received":"2026-10-15","month":"2026-10","size":"6\"","od_in":6,"wall":".250 or .280","grade":"X52 PSL2","grade_family":"X52","product_type":"Line pipe","coating":"FBE + ARO","footage":5000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"bse-ameren-1","request_id":"bse-ameren","customer":"BSE","end_user":"Ameren","stage":"Evaluating","received":"2026-07-28","month":"2026-07","size":"16\"","od_in":16,"wall":".375","grade":"X65","grade_family":"X65","product_type":"Line pipe","coating":"FBE + ARO","footage":67000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"cirrus-systems-1","request_id":"cirrus-systems","customer":"Cirrus Systems US (FSR Consulting LLC)","end_user":"McAlester Army Ammunition Plant (MCAAP), federal requirement","stage":"Needs response","received":"2026-10-14","month":"2026-10","size":"20\"","od_in":20,"wall":".375","grade":"A252 Gr 3","grade_family":"A252","product_type":"Piling / casing","coating":"Bare","footage":120,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"consolidated-pipe-1","request_id":"consolidated-pipe","customer":"Consolidated Pipe & Supply","end_user":"","stage":"Needs response","received":"2026-10-15","month":"2026-10","size":"12\"","od_in":12,"wall":".375","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Bare","footage":40000,"price_per_ft":null,"line_note":"Wants 26.5\u201327 ft or 53 ft lengths","quoted_value_usd":null},{"line_id":"core-main-1","request_id":"core-main","customer":"Core & Main","end_user":"","stage":"Evaluating","received":"2026-09-03","month":"2026-09","size":"16\"","od_in":16,"wall":".500","grade":"X52","grade_family":"X52","product_type":"Line pipe","coating":"FBE + ARO","footage":40000,"price_per_ft":null,"line_note":"Mill-limit concern","quoted_value_usd":null},{"line_id":"delta-utilities-1","request_id":"delta-utilities","customer":"Delta Utilities","end_user":"Project Delta Utility 2529608.00, Brandon, MS (AVAIO site)","stage":"Needs response","received":"2026-09-10","month":"2026-09","size":"16\"","od_in":16,"wall":".375","grade":"X60","grade_family":"X60","product_type":"Line pipe","coating":"FBE","footage":24881,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"delta-utilities-2","request_id":"delta-utilities","customer":"Delta Utilities","end_user":"Project Delta Utility 2529608.00, Brandon, MS (AVAIO site)","stage":"Needs response","received":"2026-09-10","month":"2026-09","size":"12\"","od_in":12,"wall":".375","grade":"X52","grade_family":"X52","product_type":"Line pipe","coating":"FBE","footage":6280,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"edgen-1","request_id":"edgen","customer":"Edgen","end_user":"Line pipe","stage":"Lead","received":"2026-10-07","month":"2026-10","size":"\u2014","od_in":null,"wall":"\u2014","grade":"\u2014","grade_family":"Not specified","product_type":"Line pipe","coating":"\u2014","footage":null,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"ferguson-1","request_id":"ferguson","customer":"Ferguson","end_user":"","stage":"Lead","received":"2026-10-15","month":"2026-10","size":"\u2014","od_in":null,"wall":"\u2014","grade":"\u2014","grade_family":"Not specified","product_type":"Not specified","coating":"\u2014","footage":null,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"flowzone-chevron-1","request_id":"flowzone-chevron","customer":"FlowZone","end_user":"Chevron","stage":"Evaluating","received":"2026-08-20","month":"2026-08","size":"10\"","od_in":10,"wall":".365","grade":"X52","grade_family":"X52","product_type":"Line pipe","coating":"FBE + ARO","footage":83000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"flowzone-chevron-2","request_id":"flowzone-chevron","customer":"FlowZone","end_user":"Chevron","stage":"Evaluating","received":"2026-08-20","month":"2026-08","size":"12\"","od_in":12,"wall":".375","grade":"X52","grade_family":"X52","product_type":"Line pipe","coating":"FBE","footage":2600,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"hearty-energy-1","request_id":"hearty-energy","customer":"Hearty Energy","end_user":"Williams, 2027 program","stage":"Qualifying","received":"2026-09-02","month":"2026-09","size":"9-5/8\"","od_in":9.625,"wall":"40#","grade":"L80","grade_family":"J55 / L80","product_type":"OCTG casing","coating":"Bare","footage":null,"price_per_ft":null,"line_note":"About 6,000 couplings a year","quoted_value_usd":null},{"line_id":"ips-1","request_id":"ips","customer":"IPS","end_user":"","stage":"Won","received":"2026-08-21","month":"2026-08","size":"6\"","od_in":6,"wall":".280","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Mill lacquer","footage":10000,"price_per_ft":15.95,"line_note":"","quoted_value_usd":159500.0},{"line_id":"ips-2","request_id":"ips","customer":"IPS","end_user":"","stage":"Won","received":"2026-08-21","month":"2026-08","size":"10\"","od_in":10,"wall":".365","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Mill lacquer","footage":27000,"price_per_ft":34.04,"line_note":"","quoted_value_usd":919080.0},{"line_id":"ips-3","request_id":"ips","customer":"IPS","end_user":"","stage":"Won","received":"2026-08-21","month":"2026-08","size":"14\"","od_in":14,"wall":".375","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Mill lacquer","footage":4000,"price_per_ft":45.88,"line_note":"","quoted_value_usd":183520.0},{"line_id":"irby-1","request_id":"irby","customer":"Irby","end_user":"Black Hills Energy","stage":"Evaluating","received":"2026-08-21","month":"2026-08","size":"12\"","od_in":12,"wall":".500","grade":"X65","grade_family":"X65","product_type":"Line pipe","coating":"FBE + ARO","footage":85000,"price_per_ft":null,"line_note":"Mill-limit concern","quoted_value_usd":null},{"line_id":"kelly-pipe-ks-1","request_id":"kelly-pipe-ks","customer":"Kelly Pipe","end_user":"","stage":"Quoted","received":"2026-10-07","month":"2026-10","size":"8\"","od_in":8,"wall":".322","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Bare","footage":21150,"price_per_ft":28.25,"line_note":"Delivered KS","quoted_value_usd":597487.5},{"line_id":"kelly-pipe-ks-2","request_id":"kelly-pipe-ks","customer":"Kelly Pipe","end_user":"","stage":"Quoted","received":"2026-10-07","month":"2026-10","size":"10\"","od_in":10,"wall":".365","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Bare","footage":1100,"price_per_ft":40.15,"line_note":"Delivered KS","quoted_value_usd":44165.0},{"line_id":"kelly-pipe-ks-3","request_id":"kelly-pipe-ks","customer":"Kelly Pipe","end_user":"","stage":"Quoted","received":"2026-10-07","month":"2026-10","size":"14\"","od_in":14,"wall":".375","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Bare","footage":16160,"price_per_ft":53.95,"line_note":"Delivered KS","quoted_value_usd":871832.0},{"line_id":"kelly-pipe-pa-1","request_id":"kelly-pipe-pa","customer":"Kelly Pipe","end_user":"","stage":"Quoted","received":"2026-09-15","month":"2026-09","size":"10\"","od_in":10,"wall":".365","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Bare","footage":7000,"price_per_ft":35.96,"line_note":"","quoted_value_usd":251720.0},{"line_id":"kelly-pipe-pa-2","request_id":"kelly-pipe-pa","customer":"Kelly Pipe","end_user":"","stage":"Quoted","received":"2026-09-15","month":"2026-09","size":"6\"","od_in":6,"wall":".280","grade":"A53B","grade_family":"A53B","product_type":"Standard pipe","coating":"Bare","footage":7500,"price_per_ft":16.85,"line_note":"","quoted_value_usd":126375.0},{"line_id":"mammoth-carbon-1","request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","size":"10\"","od_in":10,"wall":".365","grade":"A53B/X52 dual","grade_family":"A53B/X52 dual","product_type":"Line pipe","coating":"Bare","footage":20000,"price_per_ft":34.45,"line_note":"Quoted as A53B only","quoted_value_usd":689000.0},{"line_id":"mammoth-carbon-2","request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","size":"12\"","od_in":12,"wall":".375","grade":"A53B/X52 dual","grade_family":"A53B/X52 dual","product_type":"Line pipe","coating":"Bare","footage":15000,"price_per_ft":42.17,"line_note":"Quoted as A53B only","quoted_value_usd":632550.0},{"line_id":"mammoth-carbon-3","request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","size":"12\"","od_in":12,"wall":".375","grade":"A53B/X52 dual","grade_family":"A53B/X52 dual","product_type":"Line pipe","coating":"Bare","footage":15000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"mammoth-carbon-4","request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","size":"12\"","od_in":12,"wall":".500","grade":"A53B/X52 dual","grade_family":"A53B/X52 dual","product_type":"Line pipe","coating":"Bare","footage":10000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"mammoth-carbon-5","request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","size":"16\"","od_in":16,"wall":".312","grade":"A53B/X52 dual","grade_family":"A53B/X52 dual","product_type":"Line pipe","coating":"Bare","footage":15000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"mammoth-carbon-6","request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","size":"16\"","od_in":16,"wall":".500","grade":"A53B/X52 dual","grade_family":"A53B/X52 dual","product_type":"Line pipe","coating":"Bare","footage":15000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"mammoth-carbon-7","request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","size":"12\"","od_in":12,"wall":".312","grade":"X65 PSL2","grade_family":"X65","product_type":"Line pipe","coating":"Bare","footage":15000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"mammoth-carbon-8","request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","size":"12\"","od_in":12,"wall":".500","grade":"X65 PSL2","grade_family":"X65","product_type":"Line pipe","coating":"Bare","footage":15000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"mammoth-carbon-9","request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","size":"16\"","od_in":16,"wall":".312","grade":"X65 PSL2","grade_family":"X65","product_type":"Line pipe","coating":"Bare","footage":15000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"mammoth-carbon-10","request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","size":"16\"","od_in":16,"wall":".500","grade":"X65 PSL2","grade_family":"X65","product_type":"Line pipe","coating":"Bare","footage":10000,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"quality-gov-solutions-1","request_id":"quality-gov-solutions","customer":"Quality Gov Solutions","end_user":"Tinker AFB overhead crane (Dept. of the Air Force)","stage":"Needs response","received":"2026-10-09","month":"2026-10","size":"\u2014","od_in":null,"wall":"\u2014","grade":"Structural","grade_family":"Structural","product_type":"Structural steel","coating":"\u2014","footage":null,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"sooner-pipe-1","request_id":"sooner-pipe","customer":"Sooner Pipe","end_user":"CTAP / Sooner new management","stage":"Lead","received":"2026-10-12","month":"2026-10","size":"\u2014","od_in":null,"wall":"\u2014","grade":"\u2014","grade_family":"Not specified","product_type":"Not specified","coating":"\u2014","footage":null,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"texas-pipe-1","request_id":"texas-pipe","customer":"Texas Pipe & Supply","end_user":"","stage":"Lead","received":"2026-10-15","month":"2026-10","size":"\u2014","od_in":null,"wall":"\u2014","grade":"\u2014","grade_family":"Not specified","product_type":"Not specified","coating":"\u2014","footage":null,"price_per_ft":null,"line_note":"","quoted_value_usd":null},{"line_id":"webco-industries-1","request_id":"webco-industries","customer":"Webco Industries","end_user":"Webco mechanical tube","stage":"Evaluating","received":"2026-09-22","month":"2026-09","size":"5.5\u20136.625\"","od_in":6,"wall":".360\u2013.580","grade":"Service","grade_family":"Service","product_type":"Processing service","coating":"\u2014","footage":null,"price_per_ft":null,"line_note":"Toll normalizing, 1,376 tons","quoted_value_usd":null}],"requests":[{"request_id":"allied","customer":"Allied","end_user":"","stage":"Quoted","received":"2026-09-17","month":"2026-09","product":"16\" .375W X52 TRL, FBE","quantity":"105,600 ft","footage":105600,"quoted_value_usd":6448992.0,"delivery":"Offered late Jan 2027, FOB mill","next_step":"Quoted at $61.07/ft including FBE. Allied also asked for a new rolling schedule this week.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"app","customer":"APP","end_user":"","stage":"Quoted","received":"2026-10-09","month":"2026-10","product":"4\" .237W, 8\" .322W and 12\" .375W STD A53B ERW DRL","quantity":"15,181 ft 4\" + 13,117 ft 8\" + 10,019 ft 12\"","footage":38317,"quoted_value_usd":460373.05,"delivery":"12\" offered late Nov 2026 roller or earlier, FOB mill","next_step":"Only the 12\" is priced; 4\" and 8\" are not quoted yet.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"arcelormittal","customer":"ArcelorMittal","end_user":"Tejas Casing (delivery point)","stage":"Won","received":"2026-10-07","month":"2026-10","product":"Green tube conversion: 5-1/2\" x .361 J-55 upgradeable ERW casing","quantity":"150,466 ft","footage":150466,"quoted_value_usd":2342755.62,"delivery":"Delivery Jan 2027, DAP Houston","next_step":"Order confirmation sent Oct 13 with Net 30 and non-cancellable/non-returnable terms. Plan production and delivery.","owner":"Tay Baptiste","via":"Direct"},{"request_id":"bps-12in","customer":"BPS","end_user":"","stage":"Quoted","received":"2026-10-05","month":"2026-10","product":"12\" .375W X52 DRL FBE; 12\" STD .375W A53B ERW DRL","quantity":"11,000 ft X52 FBE + 17,000 ft A53B","footage":28000,"quoted_value_usd":1395060.0,"delivery":"A53B offered Dec 2026; X52 FBE offered Q1 2027, FOB mill","next_step":"Two quotes out (Oct 5 and Oct 7). Follow up for the order.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"bps-6in-x52","customer":"BPS","end_user":"","stage":"Needs response","received":"2026-10-15","month":"2026-10","product":"6\" .250W or .280W API 5L X52 PSL2 PEB DRL, 14\u201316 mil FBE (5,000 ft also +30 mil ARO)","quantity":"53,400 ft FBE + 5,000 ft FBE/ARO","footage":58400,"quoted_value_usd":null,"delivery":"Not stated; FOB loaded trucks to ROW near Stanley, ND","next_step":"New request from Tod's follow-up email. Needs mill capability on 6\" X52 PSL2, coating source, and a price for both wall options.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"bse-ameren","customer":"BSE","end_user":"Ameren","stage":"Evaluating","received":"2026-07-28","month":"2026-07","product":"16\" .375W X65 DRL/TRL, FBE + ARO","quantity":"67,000 ft","footage":67000,"quoted_value_usd":null,"delivery":"Delivery needed Jan 2027 (Troy, MO)","next_step":"Not quoted yet (NQ on Tod's log). X65 line pipe waits on API certification.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"cirrus-systems","customer":"Cirrus Systems US (FSR Consulting LLC)","end_user":"McAlester Army Ammunition Plant (MCAAP), federal requirement","stage":"Needs response","received":"2026-10-14","month":"2026-10","product":"20\" OD x .375 (Sch 40/STD) steel casing pipe, ASTM A252 Gr 3, ERW/LSAW/SSAW, ~21 ft SRL, 30\u00b0 beveled ends, MTRs, new only. RFQ also lists 400 ft of 12\" C900 DR-14 PVC (not a Paragon product).","quantity":"6 pcs, about 120 ft (+/- 6 ft) of 20\" casing","footage":120,"quoted_value_usd":null,"delivery":"Quote due Oct 20, 7:00 AM CT; FOB McAlester, OK; ship complete","next_step":"Decide whether to quote the 20\" casing line only (lowest-price technically acceptable); include lead time and a shipping estimate. No reply found in your mailbox.","owner":"Michael Queen","via":"Direct RFQ"},{"request_id":"consolidated-pipe","customer":"Consolidated Pipe & Supply","end_user":"","stage":"Needs response","received":"2026-10-15","month":"2026-10","product":"12-3/4\" x .375W A53B; 26.5\u201327 ft or 53 ft lengths preferred, else DRL","quantity":"40,000 ft","footage":40000,"quoted_value_usd":null,"delivery":"Material needed by end of year","next_step":"Tod asked whether those lengths work and wants to land this one. Confirm the mill can cut them, then get Tod a number.","owner":"Tod Moss / Michael Queen","via":"Tod Moss (Stuart Steel)"},{"request_id":"core-main","customer":"Core & Main","end_user":"","stage":"Evaluating","received":"2026-09-03","month":"2026-09","product":"16\" .500W X52 DRL, FBE + ARO","quantity":"40,000 ft","footage":40000,"quoted_value_usd":null,"delivery":"Delivery Dec 2026 (Jefferson, GA)","next_step":"Not quoted yet. Tod flags a mill-limit concern on 16\" .500W, so confirm the mill can roll it before quoting.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"delta-utilities","customer":"Delta Utilities","end_user":"Project Delta Utility 2529608.00, Brandon, MS (AVAIO site)","stage":"Needs response","received":"2026-09-10","month":"2026-09","product":"API 5L line pipe, FBE coated, NACE, DRL or TRL: 16\" x .375 X60 and 12\" x .375 X52","quantity":"24,881 ft (16\") + 6,280 ft (12\")","footage":31161,"quoted_value_usd":null,"delivery":"Quote due Sep 16; delivery May\u2013Jul 2027","next_step":"Quote due date passed and no reply found in your mailbox. 16\" is not on the run schedule until Q1 2027 and X52/X60 need the API license. Decide whether to send a late quote or decline.","owner":"Michael Queen","via":"Entrust Solutions (Leidos)"},{"request_id":"edgen","customer":"Edgen","end_user":"Line pipe","stage":"Lead","received":"2026-10-07","month":"2026-10","product":"Line pipe","quantity":"No RFQ yet","footage":null,"quoted_value_usd":null,"delivery":"Not stated","next_step":"Greg wants to meet to hear Paragon's long-term plans. Craig suggested going after Edgen on line pipe; schedule the meeting.","owner":"Craig Palmer / Michael Queen","via":"Craig Palmer / Michael Queen"},{"request_id":"ferguson","customer":"Ferguson","end_user":"","stage":"Lead","received":"2026-10-15","month":"2026-10","product":"Rolling schedule request","quantity":"No RFQ yet","footage":null,"quoted_value_usd":null,"delivery":"\u2014","next_step":"Asked this week for a new rolling schedule (per Tod). Send the schedule once API certification and coil stock dates are set.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"flowzone-chevron","customer":"FlowZone","end_user":"Chevron","stage":"Evaluating","received":"2026-08-20","month":"2026-08","product":"10\" .365W X52 DRL, FBE + ARO; 12\" .375W X52 DRL, FBE","quantity":"83,000 ft 10\" + 2,600 ft 12\"","footage":85600,"quoted_value_usd":null,"delivery":"Delivery needed Dec 2026 (Permian)","next_step":"Not quoted yet (NQ on Tod's log). X52 line pipe waits on API certification.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"hearty-energy","customer":"Hearty Energy","end_user":"Williams, 2027 program","stage":"Qualifying","received":"2026-09-02","month":"2026-09","product":"9-5/8\" 40# L80 casing with HIS TCBC-HT or Fermata Ratler connections","quantity":"About 6,000 couplings/yr (500 a month from Jan 2027)","footage":null,"quoted_value_usd":null,"delivery":"Supply starts Jan 2027","next_step":"Reinstate the HIS license: pre-assessment questionnaire sent Sep 9; next is the NDA, then a qualifying sample piece and the manufacturing agreement. Fermata Ratler paperwork is separate.","owner":"Dhaval Trivedi","via":"Dhaval Trivedi"},{"request_id":"ips","customer":"IPS","end_user":"","stage":"Won","received":"2026-08-21","month":"2026-08","product":"6\" .280W, 10\" .365W and 14\" .375W STD A53B ERW DRL, mill lacquer","quantity":"10,000 ft 6\" + 27,000 ft 10\" + 4,000 ft 14\"","footage":41000,"quoted_value_usd":1262100.0,"delivery":"Delivered to Tulsa","next_step":"Ordered.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"irby","customer":"Irby","end_user":"Black Hills Energy","stage":"Evaluating","received":"2026-08-21","month":"2026-08","product":"12\" x .500 wall API 5L X65 DRL, FBE/ARO coated","quantity":"85,000 ft","footage":85000,"quoted_value_usd":null,"delivery":"Not stated","next_step":"Mill can roll it but heavy wall is costly (74% prime yield on a past 12.75\" x .500 X60 run). Trinity leaned toward quoting with yield loss priced in. Still not quoted on Tod's Oct 15 log, which flags a mill-limit concern and delivery needed in 2026. Irby is also checking which gas customers' AMLs list Paragon.","owner":"Trinity Dawson","via":"Tod Moss (Stuart Steel)"},{"request_id":"kelly-pipe-ks","customer":"Kelly Pipe","end_user":"","stage":"Quoted","received":"2026-10-07","month":"2026-10","product":"8\" .322W, 10\" .365W and 14\" .375W STD A53B ERW DRL, M&M","quantity":"21,150 ft 8\" + 1,100 ft 10\" + 16,160 ft 14\"","footage":38410,"quoted_value_usd":1513484.5,"delivery":"Rolling: 10\" late Nov; 14\" late Dec (Mexican steel) or late Mar 2027 domestic; 8\" late Mar 2027","next_step":"Quoted delivered to Kansas City, KS. Follow up on which rolling dates work.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"kelly-pipe-pa","customer":"Kelly Pipe","end_user":"","stage":"Quoted","received":"2026-09-15","month":"2026-09","product":"6\" .280W and 10\" .365W STD A53B ERW DRL, M&M","quantity":"7,000 ft 10\" + 7,500 ft 6\"","footage":14500,"quoted_value_usd":378095.0,"delivery":"Fairless Hills, PA","next_step":"Quoted for a customer requirement (not stock). Follow up for the order.","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"mammoth-carbon","customer":"Mammoth Carbon","end_user":"Stock replenishment program","stage":"Quoted","received":"2026-10-01","month":"2026-10","product":"10\"\u201316\" ERW, .312\u2013.500 wall: A53B / API 5L X52 PSL2 (dual cert) and X65 PSL2, PEB DRL \u2014 10 line items","quantity":"150,000 ft","footage":145000,"quoted_value_usd":1321550.0,"delivery":"Delivery Nov 2026 on quoted items","next_step":"Quote was valid 7 days (lapsed about Oct 8). Mammoth wants A53B/X52 dual cert, so re-quote the X52 and X65 lines after API recertification.","owner":"Trinity Dawson / Dhaval Trivedi","via":"Trinity Dawson (IUS); fwd by Tod Moss Oct 13"},{"request_id":"quality-gov-solutions","customer":"Quality Gov Solutions","end_user":"Tinker AFB overhead crane (Dept. of the Air Force)","stage":"Needs response","received":"2026-10-09","month":"2026-10","product":"Structural steel, not pipe: HSS sections, W24x84, C15x33.9 and C7x9.8 channels, angles, plates, galvanized strut; heat-traceable MTRs, Buy American","quantity":"Itemized list (see scope)","footage":null,"quoted_value_usd":null,"delivery":"Supplier quote due Oct 13, 12:00 PM; gov't due Oct 16","next_step":"Supplier deadline passed at noon today with no reply found. Ask Trinity and Tod whether IUS / Paragon still bids before the Oct 16 government deadline.","owner":"Trinity Dawson / Tod Moss","via":"Direct invitation to bid"},{"request_id":"sooner-pipe","customer":"Sooner Pipe","end_user":"CTAP / Sooner new management","stage":"Lead","received":"2026-10-12","month":"2026-10","product":"OCTG and line pipe (past buyer, e.g. 10-3/4\" X60 PSL2, 9-5/8\" J55)","quantity":"No RFQ yet","footage":null,"quoted_value_usd":null,"delivery":"Met Oct 13, Houston","next_step":"Trinity thanked the Sorian (Sooner) team on Oct 14; IUS legal is preparing an NDA before financials and details are exchanged. Tod's AML customer list is due Oct 19.","owner":"Trinity Dawson / Michael Queen","via":"Trinity Dawson (IUS)"},{"request_id":"texas-pipe","customer":"Texas Pipe & Supply","end_user":"","stage":"Lead","received":"2026-10-15","month":"2026-10","product":"Rolling schedule request","quantity":"No RFQ yet","footage":null,"quoted_value_usd":null,"delivery":"\u2014","next_step":"Asked this week for a new rolling schedule (per Tod). They're on the AML list as approved (yearly response was due 2021).","owner":"Tod Moss","via":"Tod Moss (IUS)"},{"request_id":"webco-industries","customer":"Webco Industries","end_user":"Webco mechanical tube","stage":"Evaluating","received":"2026-09-22","month":"2026-09","product":"Toll full-body normalizing (service): 1026 / 1518 tubes, 5.500\"\u20136.625\" OD, .360\u2013.580 wall, lengths 18'6\"\u201339'","quantity":"1,376 tons (6 sizes)","footage":null,"quoted_value_usd":null,"delivery":"Not stated","next_step":"Ron Bell and Scott Hill set 21 ft as the minimum length, so tubes under 21 ft (Webco's run 18'6\" to 39') would need welding or leaving out. Ron's small-coil repair cost is still needed before Paragon commits.","owner":"Dhaval Trivedi","via":"Direct"}]}</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let DATA = { generatedAt: null, lines: [], requests: [] };
+  try { DATA = JSON.parse($('qp-data').textContent); } catch (e) {}
+  const LINES = DATA.lines || [], REQS = DATA.requests || [];
+  const COLORS = ['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)','var(--c6)','var(--c7)','var(--c8)'];
+  const STAGE_ORDER = ['Needs response','Evaluating','Qualifying','Quoted','Lead','Won','Declined','Lost'];
+  const DEFAULTS = { period:'6m', stages:[], product:'', grade:'', q:'', from:null, to:null, measure:'footage', stack:'product_type', group:'customer' };
+  let S = Object.assign({}, DEFAULTS);
+  try { const saved = JSON.parse(localStorage.getItem('qp-view') || 'null'); if (saved) S = Object.assign({}, DEFAULTS, saved); } catch (e) {}
+  const save = () => { try { localStorage.setItem('qp-view', JSON.stringify(S)); } catch (e) {} };
+  const set = (patch) => { Object.assign(S, patch); save(); redraw(); };
+
+  const fmtInt = d3.format(',');
+  const fmtCompact = new Intl.NumberFormat('en', { notation:'compact', maximumFractionDigits:1 });
+  const fmtUsd = (v) => v == null ? '' : '$' + (Math.abs(v) >= 10000 ? fmtCompact.format(v) : d3.format(',.2f')(v));
+  const fmtUsdFull = (v) => v == null ? '' : '$' + d3.format(',.0f')(v);
+  const fmtDate = (s) => s ? d3.utcFormat('%b %-d, %Y')(new Date(s + 'T00:00:00Z')) : '';
+  const fmtMonth = (m) => d3.utcFormat('%b %Y')(new Date(m + '-01T00:00:00Z'));
+  const LABELS = { customer:'customer', size:'size', grade_family:'grade', product_type:'product type', coating:'coating', stage:'stage', month:'month' };
+  const MEAS = { footage:'Feet requested', value:'Quoted value', requests:'Requests' };
+  const num = (v) => v == null || v === '' ? null : Number(v);
+  const val = (r) => num(r.quoted_value_usd) || 0;
+  const stageCls = (s) => s === 'Needs response' ? 'needs' : s === 'Won' ? 'won' : s === 'Quoted' ? 'quoted' : (s === 'Evaluating' || s === 'Qualifying') ? 'eval' : '';
+
+  // ---------- controls ----------
+  $('f-period').addEventListener('change', (e) => set({ period: e.target.value }));
+  [['f-from','from'],['f-to','to']].forEach(([id, k]) => {
+    const el = $(id);
+    el.addEventListener('change', () => { if (el.value && el.validity.valid) set({ [k]: el.value }); });
+    el.addEventListener('blur', () => { el.value = S[k] || ''; });
+  });
+  $('f-product').addEventListener('change', (e) => set({ product: e.target.value }));
+  $('f-grade').addEventListener('change', (e) => set({ grade: e.target.value }));
+  let qT; $('f-q').addEventListener('input', (e) => { clearTimeout(qT); const v = e.target.value.trim(); qT = setTimeout(() => set({ q: v }), 200); });
+  $('c-measure').addEventListener('change', (e) => set({ measure: e.target.value }));
+  $('c-stack').addEventListener('change', (e) => set({ stack: e.target.value }));
+  $('c-group').addEventListener('change', (e) => set({ group: e.target.value }));
+  $('f-stages').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-s]'); if (!b) return;
+    const cur = new Set(S.stages); const s = b.dataset.s;
+    if (s === '') cur.clear(); else if (cur.has(s)) cur.delete(s); else cur.add(s);
+    set({ stages: [...cur] });
+  });
+  $('f-reset').addEventListener('click', () => { S = Object.assign({}, DEFAULTS); $('f-q').value = ''; save(); redraw(); });
+
+  // ---------- filtering ----------
+  const todayISO = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+  const monthsBack = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCMonth(d.getUTCMonth() - n); return d.toISOString().slice(0, 10); };
+  function range() {
+    const t = todayISO();
+    if (S.period === 'custom') return { from: S.from || null, to: S.to || null };
+    if (S.period === 'all') return { from: null, to: null };
+    return { from: monthsBack(t, { '3m':3, '6m':6, '12m':12 }[S.period] || 6), to: t };
+  }
+  function filtered() {
+    const { from, to } = range();
+    const q = (S.q || '').toLowerCase(), stages = new Set(S.stages);
+    const L = LINES.filter((r) => (!from || r.received >= from) && (!to || r.received <= to) && (!stages.size || stages.has(r.stage))
+      && (!S.product || r.product_type === S.product) && (!S.grade || r.grade_family === S.grade)
+      && (!q || [r.customer, r.end_user, r.size, r.wall, r.grade, r.product_type, r.coating, r.line_note, r.stage].join(' ').toLowerCase().includes(q)));
+    const ids = new Set(L.map((r) => r.request_id));
+    return { L, R: REQS.filter((r) => ids.has(r.request_id)), from, to };
+  }
+  const measureOf = (rows, m) => m === 'value' ? d3.sum(rows, val) : m === 'requests' ? new Set(rows.map((r) => r.request_id)).size : d3.sum(rows, (r) => num(r.footage) || 0);
+  const fmtMeasure = (v, m) => m === 'value' ? fmtUsd(v) : m === 'requests' ? fmtInt(v) : fmtInt(Math.round(v)) + ' ft';
+  const keyOf = (r, k) => k === 'month' ? r.month : (r[k] == null || r[k] === '' ? '—' : String(r[k]));
+
+  // ---------- tooltip ----------
+  function tipIn(box) { let t = box.querySelector('.qp-tip'); if (!t) { t = document.createElement('div'); t.className = 'qp-tip'; t.hidden = true; box.appendChild(t); } return t; }
+  function placeTip(t, box, x, y) { t.hidden = false; const bw = box.clientWidth; t.style.left = Math.max(0, Math.min(bw - t.offsetWidth, x + 12)) + 'px'; t.style.top = Math.max(0, y - t.offsetHeight - 8) + 'px'; }
+  function tipRows(t, head, rows) {
+    t.replaceChildren(); const h = document.createElement('div'); h.className = 'h'; h.textContent = head; t.appendChild(h);
+    rows.forEach(([name, value, color]) => { const r = document.createElement('div'); r.className = 'r'; const n = document.createElement('span');
+      if (color) { const i = document.createElement('i'); i.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px'; i.style.background = color; n.appendChild(i); }
+      n.appendChild(document.createTextNode(name)); const v = document.createElement('b'); v.textContent = value; r.append(n, v); t.appendChild(r); });
+  }
+
+  // ---------- trend ----------
+  function drawTrend(L, from, to) {
+    const box = $('trend-chart'), legend = $('trend-legend'); box.querySelectorAll('svg,.qp-empty').forEach((n) => n.remove());
+    const m = S.measure, sk = S.stack;
+    $('trend-note').textContent = MEAS[m] + ' by month received' + (sk ? ', stacked by ' + LABELS[sk] : '');
+    if (!L.length) { legend.replaceChildren(); const e = document.createElement('div'); e.className = 'qp-empty'; e.textContent = 'No requests match these filters.'; box.appendChild(e); return; }
+    const first = (from || d3.min(L, (r) => r.received)).slice(0, 7), last = (to || d3.max(L, (r) => r.received)).slice(0, 7);
+    const months = d3.utcMonths(new Date(first + '-01T00:00:00Z'), d3.utcMonth.offset(new Date(last + '-01T00:00:00Z'), 1)).map((d) => d.toISOString().slice(0, 7));
+    let keys = ['All'];
+    if (sk) { const tot = d3.rollups(L, (rs) => measureOf(rs, m), (r) => keyOf(r, sk)).filter((d) => d[1] > 0).sort((a, b) => b[1] - a[1]); keys = tot.slice(0, 7).map((d) => d[0]); if (tot.length > 7) keys.push('Other'); if (!keys.length) keys = ['All']; }
+    const kOf = (r) => !sk || keys[0] === 'All' ? 'All' : keys.includes(keyOf(r, sk)) ? keyOf(r, sk) : 'Other';
+    const table = months.map((mo) => { const rs = L.filter((r) => r.month === mo); const o = { month: mo, __total: measureOf(rs, m) }; keys.forEach((k) => { o[k] = measureOf(rs.filter((r) => kOf(r) === k), m); }); return o; });
+    const series = d3.stack().keys(keys)(table);
+    const color = (i) => keys.length === 1 ? COLORS[0] : COLORS[i % COLORS.length];
+    const W = Math.max(280, box.clientWidth), H = 300;
+    const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+    const y = d3.scaleLinear([0, d3.max(table, (d) => d.__total) || 1], [H - 28, 12]).nice();
+    const tickFmt = (v) => m === 'value' ? '$' + fmtCompact.format(v) : m === 'requests' ? fmtInt(v) : fmtCompact.format(v);
+    const probe = svg.append('text').attr('font-size', 11).text(tickFmt(y.domain()[1]));
+    const ml = Math.ceil(probe.node().getComputedTextLength()) + 10; probe.remove();
+    const x = d3.scaleBand(months, [ml, W - 6]).padding(0.28);
+    svg.append('g').selectAll('line').data(y.ticks(5)).join('line').attr('x1', ml).attr('x2', W - 6).attr('y1', y).attr('y2', y).style('stroke', 'var(--grid)');
+    svg.append('g').selectAll('text').data(y.ticks(5)).join('text').attr('x', ml - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').attr('font-size', 11).style('fill', 'var(--muted)').text(tickFmt);
+    const every = Math.ceil(months.length / Math.max(1, Math.floor((W - ml) / 64)));
+    svg.append('g').selectAll('text').data(months.filter((_, i) => i % every === 0)).join('text').attr('x', (d) => x(d) + x.bandwidth() / 2).attr('y', H - 8).attr('text-anchor', 'middle').attr('font-size', 11).style('fill', 'var(--muted)').text((d) => d3.utcFormat('%b %y')(new Date(d + '-01T00:00:00Z')));
+    svg.append('line').attr('x1', ml).attr('x2', W - 6).attr('y1', y(0)).attr('y2', y(0)).style('stroke', 'var(--axis)');
+    const bw = Math.min(36, x.bandwidth());
+    series.forEach((s, i) => {
+      svg.append('g').selectAll('rect').data(s).join('rect').attr('x', (d) => x(d.data.month) + (x.bandwidth() - bw) / 2).attr('width', bw)
+        .attr('y', (d) => y(d[1])).attr('height', (d) => Math.max(0, y(d[0]) - y(d[1]))).style('fill', color(i));
+    });
+    const tip = tipIn(box);
+    svg.append('g').selectAll('rect').data(table).join('rect').attr('x', (d) => x(d.month)).attr('width', x.bandwidth()).attr('y', 0).attr('height', H - 28).style('fill', 'transparent')
+      .on('mousemove', (ev, d) => { const [px, py] = d3.pointer(ev, box);
+        tipRows(tip, fmtMonth(d.month) + ' · ' + fmtMeasure(d.__total, m), keys.length > 1 ? keys.map((k, i) => [k, fmtMeasure(d[k], m), color(i)]).filter((r, i) => d[keys[i]] > 0) : []);
+        placeTip(tip, box, px, py); })
+      .on('mouseleave', () => { tip.hidden = true; });
+    legend.replaceChildren(...(keys.length > 1 ? keys.map((k, i) => { const s = document.createElement('span'); const sw = document.createElement('i'); sw.style.background = color(i); s.append(sw, document.createTextNode(k)); return s; }) : []));
+  }
+
+  // ---------- breakdown ----------
+  function groups(L, k, m) {
+    return d3.rollups(L, (rs) => ({ requests: new Set(rs.map((r) => r.request_id)).size, lines: rs.length,
+      footage: d3.sum(rs, (r) => num(r.footage) || 0), priced: d3.sum(rs, (r) => num(r.price_per_ft) != null ? (num(r.footage) || 0) : 0),
+      value: d3.sum(rs, val), won: d3.sum(rs.filter((r) => r.stage === 'Won'), val), measure: measureOf(rs, m) }), (r) => keyOf(r, k))
+      .map(([key, v]) => Object.assign({ key }, v, { ppf: v.priced ? v.value / v.priced : null }));
+  }
+  function drawBreakdown(L) {
+    const box = $('bd-chart'); box.querySelectorAll('svg,.qp-empty').forEach((n) => n.remove());
+    const m = S.measure, k = S.group;
+    $('bd-note').textContent = MEAS[m] + ' by ' + LABELS[k] + (k === 'month' ? '' : ', top 12');
+    let gs = groups(L, k, m).filter((g) => g.measure > 0);
+    gs = k === 'month' ? gs.sort((a, b) => a.key.localeCompare(b.key)) : gs.sort((a, b) => b.measure - a.measure).slice(0, 12);
+    if (!gs.length) { const e = document.createElement('div'); e.className = 'qp-empty'; e.textContent = m === 'value' ? 'No priced lines match these filters.' : 'No requests match these filters.'; box.appendChild(e); return; }
+    const W = Math.max(280, box.clientWidth), H = gs.length * 26 + 8;
+    const label = (g) => { const s = k === 'month' ? fmtMonth(g.key) : g.key; return s.length > 30 ? s.slice(0, 28) + '…' : s; };
+    const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+    const measureText = (t, size) => { const n = svg.append('text').attr('font-size', size).text(t); const w = n.node().getComputedTextLength(); n.remove(); return w; };
+    const ml = Math.min(W * 0.42, d3.max(gs, (g) => measureText(label(g), 12)) + 12), mr = d3.max(gs, (g) => measureText(fmtMeasure(g.measure, m), 11)) + 10;
+    const x = d3.scaleLinear([0, d3.max(gs, (g) => g.measure)], [ml, W - mr]);
+    const y = d3.scaleBand(gs.map((g) => g.key), [4, H - 4]).padding(0.25);
+    const row = svg.selectAll('g.r').data(gs).join('g').attr('class', 'r');
+    row.append('text').attr('x', ml - 8).attr('y', (g) => y(g.key) + y.bandwidth() / 2 + 4).attr('text-anchor', 'end').attr('font-size', 12).style('fill', 'var(--ink)').text(label);
+    row.append('rect').attr('x', ml).attr('y', (g) => y(g.key)).attr('height', y.bandwidth()).attr('width', (g) => Math.max(1, x(g.measure) - ml)).attr('rx', 3).style('fill', 'var(--c1)');
+    row.append('text').attr('x', (g) => x(g.measure) + 5).attr('y', (g) => y(g.key) + y.bandwidth() / 2 + 4).attr('font-size', 11).style('fill', 'var(--muted)').text((g) => fmtMeasure(g.measure, m));
+    const tip = tipIn(box);
+    row.append('rect').attr('x', 0).attr('width', W).attr('y', (g) => y(g.key)).attr('height', y.bandwidth()).style('fill', 'transparent')
+      .on('mousemove', (ev, g) => { const [px, py] = d3.pointer(ev, box);
+        tipRows(tip, k === 'month' ? fmtMonth(g.key) : g.key, [['Requests', fmtInt(g.requests)], ['Feet requested', fmtInt(g.footage)], ['Quoted value', g.value ? fmtUsdFull(g.value) : '—'], ['Avg $/ft', g.ppf ? '$' + d3.format(',.2f')(g.ppf) : '—']]);
+        placeTip(tip, box, px, py); })
+      .on('mouseleave', () => { tip.hidden = true; });
+  }
+
+  // ---------- tables ----------
+  const sortState = { pv: { k:'footage', dir:-1 }, rq: { k:'received', dir:-1 }, ln: { k:'received', dir:-1 } };
+  const NUMERIC = new Set(['received','footage','quoted_value_usd','price_per_ft','od_in','requests','lines','priced','value','won','ppf']);
+  function sorter(st) {
+    return (a, b) => { const x = a[st.k], y = b[st.k];
+      if (NUMERIC.has(st.k) && st.k !== 'received') return ((num(x) ?? -Infinity) - (num(y) ?? -Infinity)) * st.dir;
+      if (st.k === 'stage') return (STAGE_ORDER.indexOf(x) - STAGE_ORDER.indexOf(y)) * st.dir;
+      return String(x ?? '').localeCompare(String(y ?? '')) * st.dir; };
+  }
+  const markSort = (table, st) => table.querySelectorAll('th').forEach((th) => { const b = th.querySelector('button'); th.setAttribute('aria-sort', b && b.dataset.k === st.k ? (st.dir > 0 ? 'ascending' : 'descending') : 'none'); });
+  [['rq-table','rq'],['ln-table','ln'],['pv-table','pv']].forEach(([id, key]) => {
+    $(id).querySelector('thead').addEventListener('click', (e) => { const b = e.target.closest('button[data-k]'); if (!b) return; const st = sortState[key];
+      st.dir = st.k === b.dataset.k ? -st.dir : (NUMERIC.has(b.dataset.k) ? -1 : 1); st.k = b.dataset.k; redraw(); });
+  });
+  const td = (text, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = text ?? ''; return c; };
+  const emptyRow = (cols, text) => { const tr = document.createElement('tr'); const c = td(text, 'qp-muted'); c.colSpan = cols; tr.appendChild(c); return tr; };
+  let current = { pivot: [], requests: [], lines: [] };
+
+  function drawPivot(L) {
+    const k = S.group; $('pv-title').textContent = 'Summary by ' + LABELS[k];
+    const table = $('pv-table');
+    const cols = [['key', LABELS[k][0].toUpperCase() + LABELS[k].slice(1), ''], ['requests','Requests','n'], ['lines','Line items','n'], ['footage','Feet requested','n'], ['priced','Feet priced','n'], ['value','Quoted value','n'], ['ppf','Avg $/ft','n'], ['won','Won value','n']];
+    const hr = document.createElement('tr');
+    cols.forEach(([c, name, cls]) => { const th = document.createElement('th'); if (cls) th.className = cls; const b = document.createElement('button'); b.type = 'button'; b.dataset.k = c; b.textContent = name; th.appendChild(b); hr.appendChild(th); });
+    table.tHead.replaceChildren(hr);
+    const gs = groups(L, k, S.measure).sort(sorter(sortState.pv)); markSort(table, sortState.pv);
+    current.pivot = gs.map((g) => ({ [cols[0][1]]: k === 'month' ? fmtMonth(g.key) : g.key, Requests: g.requests, 'Line items': g.lines, 'Feet requested': g.footage, 'Feet priced': g.priced, 'Quoted value': g.value ? Math.round(g.value) : '', 'Avg $/ft': g.ppf ? g.ppf.toFixed(2) : '', 'Won value': g.won ? Math.round(g.won) : '' }));
+    const rows = gs.map((g) => { const tr = document.createElement('tr');
+      tr.append(td(k === 'month' ? fmtMonth(g.key) : g.key, 'cu'), td(fmtInt(g.requests), 'n'), td(fmtInt(g.lines), 'n'), td(fmtInt(g.footage), 'n'), td(fmtInt(g.priced), 'n'), td(g.value ? fmtUsdFull(g.value) : '—', 'n'), td(g.ppf ? '$' + d3.format(',.2f')(g.ppf) : '—', 'n'), td(g.won ? fmtUsdFull(g.won) : '—', 'n')); return tr; });
+    if (gs.length > 1) { const t = groups(L, '__none', S.measure)[0]; const tr = document.createElement('tr'); tr.className = 'tot';
+      tr.append(td('Total'), td(fmtInt(t.requests), 'n'), td(fmtInt(t.lines), 'n'), td(fmtInt(t.footage), 'n'), td(fmtInt(t.priced), 'n'), td(t.value ? fmtUsdFull(t.value) : '—', 'n'), td(t.ppf ? '$' + d3.format(',.2f')(t.ppf) : '—', 'n'), td(t.won ? fmtUsdFull(t.won) : '—', 'n')); rows.push(tr); }
+    table.tBodies[0].replaceChildren(...(rows.length ? rows : [emptyRow(8, 'No requests match these filters.')]));
+  }
+  function drawRequests(R) {
+    const table = $('rq-table'); const rows = R.slice().sort(sorter(sortState.rq)); markSort(table, sortState.rq);
+    $('rq-note').textContent = fmtInt(rows.length) + ' requests. Click a column to sort.';
+    current.requests = rows.map((r) => ({ Customer: r.customer, 'End user': r.end_user, Stage: r.stage, Received: r.received, Product: r.product, Quantity: r.quantity, Feet: r.footage ?? '', 'Quoted value': r.quoted_value_usd ?? '', Delivery: r.delivery, 'Next step': r.next_step, Owner: r.owner }));
+    table.tBodies[0].replaceChildren(...(rows.length ? rows.map((r) => { const tr = document.createElement('tr');
+      const cu = td(r.customer, 'cu'); if (r.end_user) { const s = document.createElement('div'); s.className = 'qp-muted'; s.style.fontWeight = '400'; s.textContent = r.end_user; cu.appendChild(s); }
+      const st = document.createElement('td'); const p = document.createElement('span'); p.className = 'qp-st ' + stageCls(r.stage); p.textContent = r.stage; st.appendChild(p);
+      tr.append(cu, st, td(fmtDate(r.received)), td(r.product, 'w'), td(r.footage != null ? fmtInt(r.footage) : '', 'n'), td(r.quoted_value_usd != null ? fmtUsdFull(r.quoted_value_usd) : '', 'n'), td(r.delivery, 'w'), td(r.next_step, 'w'), td(r.owner));
+      return tr; }) : [emptyRow(9, 'No requests match these filters.')]));
+  }
+  function drawLines(L) {
+    const table = $('ln-table'); const rows = L.slice().sort(sorter(sortState.ln)); markSort(table, sortState.ln);
+    $('ln-note').textContent = fmtInt(rows.length) + ' line items: every size and grade requested. Click a column to sort.';
+    current.lines = rows.map((r) => ({ Received: r.received, Customer: r.customer, Size: r.size, Wall: r.wall, Grade: r.grade, Product: r.product_type, Coating: r.coating, Feet: r.footage ?? '', 'Price per ft': r.price_per_ft ?? '', 'Quoted value': r.quoted_value_usd ?? '', Stage: r.stage, Note: r.line_note }));
+    table.tBodies[0].replaceChildren(...(rows.length ? rows.map((r) => { const tr = document.createElement('tr');
+      tr.append(td(fmtDate(r.received)), td(r.customer, 'cu'), td(r.size), td(r.wall), td(r.grade), td(r.product_type), td(r.coating), td(r.footage != null ? fmtInt(r.footage) : '', 'n'),
+        td(r.price_per_ft != null ? '$' + d3.format(',.2f')(r.price_per_ft) : '', 'n'), td(r.quoted_value_usd != null ? fmtUsdFull(r.quoted_value_usd) : '', 'n'), td(r.stage), td(r.line_note));
+      return tr; }) : [emptyRow(12, 'No line items match these filters.')]));
+  }
+
+  // ---------- copy as CSV ----------
+  let toastT; const toast = (m) => { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2200); };
+  const toCSV = (rows) => rows.length ? d3.csvFormat(rows) : '';
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-copy]'); if (!b) return;
+    const text = toCSV(current[b.dataset.copy] || []);
+    if (!text) { toast('Nothing to copy with these filters.'); return; }
+    const fallback = () => { $('copyfallback').hidden = false; const ta = $('cf-text'); ta.value = text; ta.focus(); ta.select(); $('copyfallback').scrollIntoView({ block:'nearest' }); };
+    try { navigator.clipboard.writeText(text).then(() => toast('Copied. Paste it into Excel.'), fallback); } catch (err) { fallback(); }
+  });
+  $('cf-close').addEventListener('click', () => { $('copyfallback').hidden = true; });
+
+  // ---------- main ----------
+  function redraw() {
+    const sel = (id, label, values, cur) => { const s = $(id); s.replaceChildren(new Option(label, ''), ...values.map((v) => new Option(v))); s.value = values.includes(cur) ? cur : ''; };
+    $('f-period').value = S.period; $('f-fromwrap').hidden = $('f-towrap').hidden = S.period !== 'custom';
+    if (document.activeElement !== $('f-from')) $('f-from').value = S.from || '';
+    if (document.activeElement !== $('f-to')) $('f-to').value = S.to || '';
+    if (document.activeElement !== $('f-q')) $('f-q').value = S.q || '';
+    $('c-measure').value = S.measure; $('c-stack').value = S.stack; $('c-group').value = S.group;
+    sel('f-product', 'All products', [...new Set(LINES.map((r) => r.product_type))].sort(), S.product);
+    sel('f-grade', 'All grades', [...new Set(LINES.map((r) => r.grade_family))].sort(), S.grade);
+    const present = STAGE_ORDER.filter((s) => LINES.some((r) => r.stage === s)), chosen = new Set(S.stages);
+    const chip = (label, s, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'qp-chip'; b.dataset.s = s; b.setAttribute('aria-pressed', String(on)); b.textContent = label; return b; };
+    $('f-stages').replaceChildren(chip('All', '', !chosen.size), ...present.map((s) => chip(s, s, chosen.has(s))));
+    $('updated').textContent = DATA.generatedAt ? 'Updated ' + new Date(DATA.generatedAt).toLocaleString('en-US', { timeZone:'America/Chicago', month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) + ' CT' : '';
+
+    const { L, R, from, to } = filtered();
+    const ft = d3.sum(L, (r) => num(r.footage) || 0), value = d3.sum(L, val);
+    const priced = d3.sum(L, (r) => num(r.price_per_ft) != null ? (num(r.footage) || 0) : 0);
+    const won = d3.sum(L.filter((r) => r.stage === 'Won'), val), needs = R.filter((r) => r.stage === 'Needs response').length;
+    $('k-req').textContent = fmtInt(R.length); $('k-needs').textContent = fmtInt(needs); $('k-ft').textContent = fmtInt(Math.round(ft));
+    $('k-val').textContent = value ? fmtUsd(value) : '$0'; $('k-ppf').textContent = priced ? '$' + d3.format(',.2f')(value / priced) : '—';
+    $('k-unpriced').textContent = ft ? d3.format('.0%')((ft - priced) / ft) : '—'; $('k-won').textContent = won ? fmtUsd(won) : '$0';
+    const periodName = S.period === 'custom' ? (from || to ? `${from ? fmtDate(from) : 'Start'} to ${to ? fmtDate(to) : 'today'}` : 'All dates') : $('f-period').options[$('f-period').selectedIndex].text;
+    if (!L.length) $('takeaway').textContent = periodName + ': no requests match these filters.';
+    else { const top = d3.rollups(L, (rs) => d3.sum(rs, (r) => num(r.footage) || 0), (r) => r.product_type).sort((a, b) => b[1] - a[1])[0];
+      $('takeaway').textContent = `${periodName}: ${fmtInt(R.length)} requests for ${fmtInt(Math.round(ft))} ft. ` + (top && ft ? `${top[0]} is ${d3.format('.0%')(top[1] / ft)} of the footage. ` : '')
+        + (ft ? `${d3.format('.0%')((ft - priced) / ft)} of the footage has no price yet` : '') + (needs ? `, and ${needs} request${needs === 1 ? '' : 's'} need${needs === 1 ? 's' : ''} a response.` : '.'); }
+    drawTrend(L, from, to); drawBreakdown(L); drawPivot(L); drawRequests(R); drawLines(L);
+  }
+  let rT; window.addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(redraw, 150); });
+  redraw();
+})();
+</script>
+</body></html>
